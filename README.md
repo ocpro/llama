@@ -10,6 +10,8 @@
 example_small.py
 ```
 
+# model
+https://huggingface.co/nyanko7/LLaMA-7B/tree/main
 
 # LLaMA 
 
