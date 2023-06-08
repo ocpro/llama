@@ -198,10 +198,12 @@ class TransformerBlock(nn.Module):
 class Transformer(nn.Module):
     def __init__(self, params: ModelArgs):
         super().__init__()
+        # 参数，词表，层数        
         self.params = params
         self.vocab_size = params.vocab_size
         self.n_layers = params.n_layers
 
+        # word_emmbedding
         self.tok_embeddings = ParallelEmbedding(
             params.vocab_size, params.dim, init_method=lambda x: x
         )
@@ -209,12 +211,13 @@ class Transformer(nn.Module):
         self.layers = torch.nn.ModuleList()
         for layer_id in range(params.n_layers):
             self.layers.append(TransformerBlock(layer_id, params))
-
+        # RMSNorm
         self.norm = RMSNorm(params.dim, eps=params.norm_eps)
+        # linear类型，每个词在词表的概率分布
         self.output = ColumnParallelLinear(
             params.dim, params.vocab_size, bias=False, init_method=lambda x: x
         )
-
+        # 计算旋转embedding
         self.freqs_cis = precompute_freqs_cis(
             self.params.dim // self.params.n_heads, self.params.max_seq_len * 2
         )
@@ -223,6 +226,7 @@ class Transformer(nn.Module):
     def forward(self, tokens: torch.Tensor, start_pos: int):
         _bsz, seqlen = tokens.shape
         h = self.tok_embeddings(tokens)
+        # 旋转embedding
         self.freqs_cis = self.freqs_cis.to(h.device)
         freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]
 
