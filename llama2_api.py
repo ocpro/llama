@@ -5,9 +5,12 @@ from llama import Llama
 
 app = Flask(__name__)
 
-ckpt_dir = "./llama-2-7b/"
-tokenizer_path = "./tokenizer.model"
-max_seq_len = 128
+ckpt_dir = "<path_to_checkpoint_dir>"
+tokenizer_path = "<path_to_tokenizer>"
+# ckpt_dir = "llama-2-7b/"
+# ckpt_dir = "llama-2-7b-chat/"
+# tokenizer_path = "tokenizer.model"
+max_seq_len = 512
 max_batch_size = 4
 
 generator = Llama.build(
@@ -43,5 +46,30 @@ def generate_text():
     return jsonify({"generated_texts": generated_texts})
 
 
+@app.route("/chat", methods=["POST"])
+def chat_completion():
+    data = request.json
+    dialogs = data.get("dialogs", [])
+    max_gen_len = data.get("max_gen_len", None)
+    temperature = data.get("temperature", 0.6)
+    top_p = data.get("top_p", 0.9)
+
+    results = generator.chat_completion(
+        dialogs,
+        max_gen_len=max_gen_len,
+        temperature=temperature,
+        top_p=top_p,
+    )
+
+    generated_dialogs = []
+    for dialog, result in zip(dialogs, results):
+        generated_dialogs.append({
+            "dialog": dialog,
+            "generation": result["generation"]
+        })
+
+    return jsonify({"generated_dialogs": generated_dialogs})
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=9000)
